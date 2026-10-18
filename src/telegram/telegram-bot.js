@@ -239,6 +239,27 @@ class TelegramBotService {
       }
     }
 
+    // Auto-scrape any raw URL sent directly
+    if (text.startsWith('http://') || text.startsWith('https://')) {
+      await this.scrapeAndSendHubCloudLinks(chatId, text);
+      return;
+    }
+
+    // Friendly greetings & quick help
+    if (/^(hi|hello|hy|hey|start)$/i.test(text)) {
+      await this.sendMessage(
+        chatId,
+        `👋 <b>Hello @${fromUser}!</b>\n\n` +
+        `Send me any movie or series link (e.g. <code>https://4khdhub.one/...</code>) and I will automatically extract and decode all HubCloud destination links for you!\n\n` +
+        `<b>Available Commands:</b>\n` +
+        `• <code>/status</code> — Check 24x7 server health\n` +
+        `• <code>/ping</code> — Test responsiveness\n` +
+        `• <code>/links</code> — Get latest resolved links\n` +
+        `• <code>/help</code> — Show full command list`
+      );
+      return;
+    }
+
     const [cmd, ...args] = text.split(/\s+/);
 
     switch (cmd.toLowerCase()) {
@@ -248,10 +269,11 @@ class TelegramBotService {
           chatId,
           `🤖 <b>Authorized Scraper 24x7 Uptime Bot</b>\n\n` +
           `<b>Available Commands:</b>\n` +
+          `• Paste any URL directly to scrape it\n` +
           `• <code>/ping</code> — Instant responsiveness check\n` +
           `• <code>/uptime</code> or <code>/status</code> — System health & stats\n` +
-          `• <code>/links</code> — Recent 5 discovered download links\n` +
-          `• <code>/scrape &lt;url&gt;</code> — Trigger a scrape job remotely\n` +
+          `• <code>/links</code> — Recent discovered HubCloud links\n` +
+          `• <code>/scrape &lt;url&gt;</code> — Trigger a scrape job\n` +
           `• <code>/id</code> — Show your Telegram Chat ID`
         );
         break;
@@ -286,6 +308,20 @@ class TelegramBotService {
 
       case '/links': {
         try {
+          // If we have cached hubcloud_links.json, serve summary
+          const cachePath = path.resolve('hubcloud_links.json');
+          if (fs.existsSync(cachePath)) {
+            const raw = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            const zips = raw.filter(d => d.filename.endsWith('.zip'));
+            let resMsg = `📁 <b>Current Discovered Packs (${zips.length}):</b>\n\n`;
+            zips.forEach((z, i) => {
+              resMsg += `• <b>${z.filename}</b>\n  <code>${z.hubcloudUrl}</code>\n\n`;
+            });
+            resMsg += `Send any movie/series URL to scrape fresh links!`;
+            await this.sendMessage(chatId, resMsg);
+            break;
+          }
+
           const db = getDB();
           const links = await db.getLinks({ status: Status.RESOLVED }, 5);
           if (!links || links.length === 0) {
@@ -314,32 +350,102 @@ class TelegramBotService {
           await this.sendMessage(chatId, `⚠️ <b>Usage:</b> <code>/scrape https://example.com/item</code>`);
           break;
         }
-
-        try {
-          const db = getDB();
-          const job = await db.createJob({
-            url: urlToScrape.trim(),
-            status: Status.DISCOVERED
-          });
-
-          jobQueue.enqueue(job.jobId || job._id);
-
-          await this.sendMessage(
-            chatId,
-            `⏳ <b>Scrape Job Queued</b>\n` +
-            `• <b>Job ID:</b> <code>${job.jobId || job._id}</code>\n` +
-            `• <b>Target:</b> <code>${urlToScrape}</code>\n` +
-            `You will receive an alert once resolved.`
-          );
-        } catch (err) {
-          await this.sendMessage(chatId, `❌ Failed to enqueue job: ${err.message}`);
-        }
+        await this.scrapeAndSendHubCloudLinks(chatId, urlToScrape);
         break;
       }
 
       default:
-        await this.sendMessage(chatId, `❓ Unknown command. Send /help to view list.`);
+        await this.sendMessage(chatId, `❓ Unknown command. Send any link directly to scrape, or /help for commands.`);
         break;
+    }
+  }
+
+  /**
+   * Directly scrapes target URL and delivers HubCloud links to user
+   */
+  async scrapeAndSendHubCloudLinks(chatId, targetUrl) {
+    await this.sendMessage(chatId, `🔍 <b>Scraping target:</b>\n<code>${targetUrl}</code>\n\nExtracting HubCloud download links, please wait a moment...`);
+
+    try {
+      const http = (await import('../discovery/http-client.js')).default;
+      const cheerio = await import('cheerio');
+      const { decodeMediatorPayload } = await import('../discovery/link-discovery.js');
+
+      const res = await http.fetchWithBackoff(targetUrl.trim());
+      const $ = cheerio.load(res.body);
+
+      const hubcloudCandidates = [];
+      $('a[href]').each((_, el) => {
+        const text = $(el).text();
+        const href = $(el).attr('href');
+        if (text.includes('HubCloud') && href && (href.includes('greenmotors') || href.includes('hubcloud') || href.includes('drive'))) {
+          const container = $(el).closest('.download-item, .episode-download-item');
+          let filename = container.find('.file-title, .episode-file-title').text().trim();
+          let size = container.find('.badge-size, span.badge:contains("GB"), span.badge:contains("MB")').first().text().trim();
+          if (!filename) filename = $(el).closest('div').text().trim();
+          hubcloudCandidates.push({ filename, size, href });
+        }
+      });
+
+      if (hubcloudCandidates.length === 0) {
+        // Fallback to queue
+        const db = getDB();
+        const job = await db.createJob({ url: targetUrl.trim(), status: Status.DISCOVERED });
+        jobQueue.enqueue(job.jobId || job._id);
+        await this.sendMessage(chatId, `ℹ️ Queued general scrape job <code>${job.jobId || job._id}</code>. Processing in background.`);
+        return;
+      }
+
+      await this.sendMessage(chatId, `⚡ Found <b>${hubcloudCandidates.length}</b> HubCloud links. Resolving final destination links...`);
+
+      // Resolve items
+      const resolved = [];
+      for (const item of hubcloudCandidates) {
+        try {
+          let dest = item.href;
+          if (item.href.includes('greenmotors')) {
+            const gRes = await http.fetchWithBackoff(item.href);
+            if (gRes.statusCode === 302 && gRes.headers.location) {
+              const nextRes = await http.fetchWithBackoff(gRes.headers.location);
+              dest = decodeMediatorPayload(nextRes.body) || gRes.headers.location;
+            } else {
+              dest = decodeMediatorPayload(gRes.body) || item.href;
+            }
+          }
+          resolved.push({ filename: item.filename, size: item.size, url: dest });
+        } catch (e) {
+          logger.error('TELEGRAM', `Error resolving item: ${e.message}`);
+        }
+      }
+
+      // Group by zip vs episodes
+      const zips = resolved.filter(r => r.filename.endsWith('.zip'));
+      const eps = resolved.filter(r => !r.filename.endsWith('.zip'));
+
+      if (zips.length > 0) {
+        let msg = `📦 <b>SEASON ZIP PACKS:</b>\n\n`;
+        for (const z of zips) {
+          msg += `<code>${z.filename}</code>\n<code>${z.url}</code>\n\n`;
+        }
+        await this.sendMessage(chatId, msg);
+      }
+
+      if (eps.length > 0) {
+        const chunkSize = 6;
+        for (let i = 0; i < eps.length; i += chunkSize) {
+          const chunk = eps.slice(i, i + chunkSize);
+          let msg = `🎬 <b>EPISODES (${i + 1}–${Math.min(i + chunkSize, eps.length)} of ${eps.length}):</b>\n\n`;
+          for (const ep of chunk) {
+            msg += `<code>${ep.filename}</code>\n<code>${ep.url}</code>\n\n`;
+          }
+          await this.sendMessage(chatId, msg);
+        }
+      }
+
+      await this.sendMessage(chatId, `✅ <b>Complete!</b> Successfully resolved and delivered ${resolved.length} HubCloud links.`);
+    } catch (err) {
+      logger.error('TELEGRAM', `Scrape error: ${err.message}`);
+      await this.sendMessage(chatId, `❌ Failed to resolve links: ${err.message}`);
     }
   }
 }
