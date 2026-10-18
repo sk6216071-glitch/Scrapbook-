@@ -14,6 +14,10 @@ export const config = {
     .split(',')
     .map(d => d.trim().toLowerCase())
     .filter(Boolean),
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
+  telegramEnabled: process.env.TELEGRAM_ENABLED === 'true',
+  telegramHeartbeatInterval: parseInt(process.env.TELEGRAM_HEARTBEAT_MINUTES || '60', 10),
 };
 
 export default config;

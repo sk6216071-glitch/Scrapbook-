@@ -5,6 +5,7 @@ import config from './config/config.js';
 import logger from './logging/logger.js';
 import { connectDB } from './database/mongodb.js';
 import apiRouter from './api/routes.js';
+import telegramBot from './telegram/telegram-bot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,12 @@ export async function startServer(port = config.port) {
     server = app.listen(port, () => {
       logger.log('DATABASE', `Server listening on http://localhost:${port}`);
       logger.log('DATABASE', `Admin dashboard available at http://localhost:${port}/`);
+      
+      // Initialize Telegram 24x7 bot if enabled
+      telegramBot.start().catch((err) => {
+        logger.error('TELEGRAM', `Bot error on startup: ${err.message}`);
+      });
+
       resolve(server);
     });
   });
