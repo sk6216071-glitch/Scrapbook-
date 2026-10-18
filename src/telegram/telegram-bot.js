@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import config from '../config/config.js';
 import logger from '../logging/logger.js';
 import { getDB } from '../database/mongodb.js';
@@ -216,6 +218,26 @@ class TelegramBotService {
     const fromUser = msg.from?.username ? `@${msg.from.username}` : (msg.from?.first_name || 'User');
 
     logger.info('TELEGRAM', `Command from ${fromUser}: ${text}`);
+
+    // Auto-pair with first user who messages the bot if chatId is not configured
+    if (!this.chatId) {
+      this.chatId = String(chatId);
+      logger.info('TELEGRAM', `Auto-paired with chat ID: ${this.chatId}`);
+      try {
+        const envPath = path.resolve('.env');
+        if (fs.existsSync(envPath)) {
+          let envContent = fs.readFileSync(envPath, 'utf8');
+          if (envContent.includes('TELEGRAM_CHAT_ID=')) {
+            envContent = envContent.replace(/TELEGRAM_CHAT_ID=.*$/m, `TELEGRAM_CHAT_ID=${this.chatId}`);
+          } else {
+            envContent += `\nTELEGRAM_CHAT_ID=${this.chatId}\n`;
+          }
+          fs.writeFileSync(envPath, envContent, 'utf8');
+        }
+      } catch (e) {
+        logger.error('TELEGRAM', `Could not persist chat ID to .env: ${e.message}`);
+      }
+    }
 
     const [cmd, ...args] = text.split(/\s+/);
 
