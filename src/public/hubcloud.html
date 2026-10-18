@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HubCloud Links - Ultra Compact</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --background: #090d16;
+      --card: #0f172a;
+      --foreground: #f1f5f9;
+      --muted-foreground: #94a3b8;
+      --border: #1e293b;
+      --primary: #2563eb;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-2">
+
+  <div class="max-w-5xl mx-auto bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-lg space-y-2.5">
+    
+    <!-- Ultra Compact Top Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-white tracking-wide">HubCloud Links</span>
+        <span id="stat-count" class="text-[11px] text-[var(--muted-foreground)]">(45 items)</span>
+      </div>
+
+      <!-- Quick Category Filter Pills -->
+      <div class="flex flex-wrap items-center gap-1">
+        <button onclick="setFilter('ALL')" class="pill-btn active px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-600 text-white transition">All (45)</button>
+        <button onclick="setFilter('ZIP')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Zip Packs (5)</button>
+        <button onclick="setFilter('4K_HDR')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">4K HDR (8)</button>
+        <button onclick="setFilter('4K_SDR')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">4K SDR (8)</button>
+        <button onclick="setFilter('1080P_H264')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">1080p H.264 (8)</button>
+        <button onclick="setFilter('1080P_H265')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">1080p H.265 (8)</button>
+        <button onclick="setFilter('1080P_AV1')" class="pill-btn px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">1080p AV1 (8)</button>
+        <button onclick="copyAllVisible()" class="ml-1 px-2.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow">Copy All</button>
+      </div>
+    </div>
+
+    <!-- Items List Container (Minimal Spacing) -->
+    <div id="list-container" class="space-y-3 max-h-[560px] overflow-y-auto custom-scroll pr-1">
+      <!-- Dynamic Content -->
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold shadow-xl opacity-0 pointer-events-none transition-all duration-150 transform translate-y-2 z-50">
+    Copied!
+  </div>
+
+  <script>
+    const data = [
+      // ZIP PACKS
+      { group: 'ZIP', groupName: '📦 SEASON ZIP PACKS', filename: 'Friends.Sex.and.Games.S01.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.zip', hubcloudUrl: 'https://hubcloud.ist/drive/0jprujl9l9m9pau' },
+      { group: 'ZIP', groupName: '📦 SEASON ZIP PACKS', filename: 'Friends.Sex.and.Games.S01.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.zip', hubcloudUrl: 'https://hubcloud.ist/drive/m9pulqjj1jljblj' },
+      { group: 'ZIP', groupName: '📦 SEASON ZIP PACKS', filename: 'Friends.Sex.and.Games.S01.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.zip', hubcloudUrl: 'https://hubcloud.ist/drive/1twggjus218jz2m' },
+      { group: 'ZIP', groupName: '📦 SEASON ZIP PACKS', filename: 'Friends.Sex.and.Games.S01.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.zip', hubcloudUrl: 'https://hubcloud.ist/drive/kwejx3wgg4xo3dw' },
+      { group: 'ZIP', groupName: '📦 SEASON ZIP PACKS', filename: 'Friends.Sex.and.Games.S01.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.zip', hubcloudUrl: 'https://hubcloud.ist/drive/vk2nnthtr122bcz' },
+
+      // 4K HDR
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E01.Never.Have.I.Ever.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/j5vccvyvo0hio1h' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E02.Ladies.Pick.Your.Keys.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/hssqqs1ashhhggk' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E03.Now.What.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/gr1ucokniu0qrcl' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E04.Its.Complicated.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/up1inkpgch90xqt' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E05.Lets.Do.it.Again.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/nedl701i1kqlh1e' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E06.Teenage.Dreams.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/z022pum7ugc281r' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E07.Wedding.From.Hell.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/f2p1fbehbeaoaqa' },
+      { group: '4K_HDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K HDR', filename: 'Friends.Sex.and.Games.S01E08.All.or.Nothing.2160p.AMZN.WEB-DL.Multi.DDP5.1.HDR.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/fbxdtpbpp99tmrp' },
+
+      // 4K SDR
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E01.Never.Have.I.Ever.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/liukzysu7bzhj3w' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E02.Ladies.Pick.Your.Keys.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/q1gsfzz8x95v66i' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E03.Now.What.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/il8mmo9udgs8du2' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E04.Its.Complicated.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/lcaw9u4haaos9cc' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E05.Lets.Do.it.Again.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/sodyupepd1mtdod' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E06.Teenage.Dreams.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/ew72qdviuvmxva2' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E07.Wedding.From.Hell.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/cyw6xwuuoqwu2yg' },
+      { group: '4K_SDR', groupName: '🎬 SINGLE EPISODES — 2160p 4K SDR', filename: 'Friends.Sex.and.Games.S01E08.All.or.Nothing.2160p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/gyfiks2lyffl4ol' },
+
+      // 1080P H264
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E01.Never.Have.I.Ever.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/4cch6myrrzqfbbc' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E02.Ladies.Pick.Your.Keys.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/dwxdxgz1rufjvzo' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E03.Now.What.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/qvposo9sq2qppg7' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E04.Its.Complicated.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/yvu1vbej20vwyvu' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E05.Lets.Do.it.Again.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/hkh49kcjqtmwjmm' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E06.Teenage.Dreams.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/1jcnwjgchgcmngn' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E07.Wedding.From.Hell.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/gcfdqxgxsydxpxx' },
+      { group: '1080P_H264', groupName: '🎬 SINGLE EPISODES — 1080p H.264', filename: 'Friends.Sex.and.Games.S01E08.All.or.Nothing.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.264-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/rd8b88rjepeybip' },
+
+      // 1080P H265
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E01.Never.Have.I.Ever.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/ogiddjotxvokim4' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E02.Ladies.Pick.Your.Keys.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/1ep4ojwo15tmagt' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E03.Now.What.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/fgmqldoczgeesgf' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E04.Its.Complicated.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/b9nvgsf8iri68h1' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E05.Lets.Do.it.Again.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/onn9uguyoo5g9gg' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E06.Teenage.Dreams.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/e1wxv7twdhv8txx' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E07.Wedding.From.Hell.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/8w7raivh7yqa8wv' },
+      { group: '1080P_H265', groupName: '🎬 SINGLE EPISODES — 1080p H.265 (HEVC)', filename: 'Friends.Sex.and.Games.S01E08.All.or.Nothing.1080p.AMZN.WEB-DL.Multi.DDP5.1.H.265-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/zdtcyaglu1qtpkt' },
+
+      // 1080P AV1
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E01.Never.Have.I.Ever.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/fh1m9fddmhh9iii' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E02.Ladies.Pick.Your.Keys.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/oaap1so1njnaxd1' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E03.Now.What.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/ue1gj4hjgg4ge6j' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E04.Its.Complicated.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/pfec5ccddd4u4fk' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E05.Lets.Do.it.Again.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/f09gznhd019zqr9' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E06.Teenage.Dreams.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/gnnnlmrjsgiocpo' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E07.Wedding.From.Hell.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/snzzs2hhmkzu2ou' },
+      { group: '1080P_AV1', groupName: '🎬 SINGLE EPISODES — 1080p AV1', filename: 'Friends.Sex.and.Games.S01E08.All.or.Nothing.1080p.AMZN.WEB-DL.Multi.DDP5.1.AV1-4kHdHub.Com.mkv', hubcloudUrl: 'https://hubcloud.ist/drive/wmwuhvwa66johyd' }
+    ];
+
+    let currentGroupFilter = 'ALL';
+
+    function setFilter(grp) {
+      currentGroupFilter = grp;
+      document.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-slate-800', 'text-slate-300');
+      });
+      event.target.classList.remove('bg-slate-800', 'text-slate-300');
+      event.target.classList.add('bg-blue-600', 'text-white');
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('list-container');
+      const filtered = currentGroupFilter === 'ALL' ? data : data.filter(d => d.group === currentGroupFilter);
+      document.getElementById('stat-count').textContent = `(${filtered.length} items)`;
+
+      // Group items
+      const groups = {};
+      filtered.forEach(item => {
+        if (!groups[item.groupName]) groups[item.groupName] = [];
+        groups[item.groupName].push(item);
+      });
+
+      container.innerHTML = Object.entries(groups).map(([grpName, items]) => {
+        const itemRows = items.map(item => `
+          <div class="bg-slate-900/90 border border-slate-800 rounded p-2 text-xs font-mono space-y-1 hover:border-slate-700 transition">
+            <!-- Line 1: Title -->
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-slate-200 select-all truncate">${escapeHtml(item.filename)}</span>
+              <button onclick="copyText('${escapeAttr(item.filename)}', 'Copied Title!')" class="px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 active:scale-95 transition flex-shrink-0">
+                Copy
+              </button>
+            </div>
+            <!-- Line 2: Link -->
+            <div class="flex items-center justify-between gap-2 border-t border-slate-800/80 pt-1">
+              <a href="${item.hubcloudUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline truncate select-all">
+                ${item.hubcloudUrl}
+              </a>
+              <button onclick="copyText('${item.hubcloudUrl}', 'Copied Link!')" class="px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-blue-950 border border-blue-800 text-blue-300 hover:text-white hover:bg-blue-900 active:scale-95 transition flex-shrink-0">
+                Copy
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        return `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-xs font-bold text-slate-400">${grpName}</span>
+              <button onclick="copyGroup('${escapeAttr(grpName)}')" class="text-[11px] text-blue-400 hover:underline">Copy Group</button>
+            </div>
+            ${itemRows}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function copyText(txt, msg = 'Copied!') {
+      navigator.clipboard.writeText(txt).then(() => showToast(msg)).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(msg);
+      });
+    }
+
+    function copyGroup(grpName) {
+      const items = data.filter(d => d.groupName === grpName);
+      const text = items.map(d => `${d.filename}\n${d.hubcloudUrl}`).join('\n\n');
+      copyText(text, `Copied ${items.length} items from ${grpName}!`);
+    }
+
+    function copyAllVisible() {
+      const filtered = currentGroupFilter === 'ALL' ? data : data.filter(d => d.group === currentGroupFilter);
+      const text = filtered.map(d => `${d.filename}\n${d.hubcloudUrl}`).join('\n\n');
+      copyText(text, `Copied ${filtered.length} items!`);
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+      }, 1500);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escapeAttr(s) {
+      return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    render();
+  </script>
+</body>
+</html>
