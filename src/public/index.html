@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authorized Metadata Scraper - Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #111827;
+      --bg-hover: #1f2937;
+      --border: #1f293d;
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Submit Card */
+    .submit-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .submit-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .submit-form {
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-url {
+      flex: 1;
+      background: #0d121f;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-url:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn-submit {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-submit:hover {
+      opacity: 0.9;
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Content Layout */
+    .layout-split {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .layout-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Job List */
+    .job-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .job-item {
+      background: #0d121f;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .job-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .job-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent-blue);
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-RESOLVED { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .badge-DISCOVERED, .badge-REDIRECTING, .badge-PARSING { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .badge-PARTIAL { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .badge-HUMAN_VERIFICATION_REQUIRED { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .badge-ACCESS_DENIED, .badge-ERROR, .badge-TIMEOUT { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    .job-url {
+      font-size: 12px;
+      color: var(--text-secondary);
+      word-break: break-all;
+    }
+
+    /* Scraped Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: var(--bg-hover);
+    }
+
+    .file-title {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .file-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-right: 4px;
+    }
+
+    .mirror-btn {
+      background: #1e293b;
+      color: #93c5fd;
+      border: 1px solid #334155;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .mirror-btn:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1>Authorized Metadata Scraper</h1>
+          <div class="subtitle">Link Discovery & Pipeline Orchestrator</div>
+        </div>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span>ENGINE LIVE</span>
+      </div>
+    </header>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total Links</div>
+        <div class="metric-value" id="stat-total" style="color: var(--text-primary)">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Resolved</div>
+        <div class="metric-value" id="stat-resolved" style="color: var(--accent-green)">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Partial</div>
+        <div class="metric-value" id="stat-partial" style="color: var(--accent-amber)">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Human Challenges</div>
+        <div class="metric-value" id="stat-challenges" style="color: var(--accent-red)">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Errors</div>
+        <div class="metric-value" id="stat-errors" style="color: var(--accent-purple)">0</div>
+      </div>
+    </div>
+
+    <!-- Job Submission -->
+    <div class="submit-section">
+      <div class="submit-title">Submit Authorized Target URL</div>
+      <form class="submit-form" id="scrape-form">
+        <input
+          type="url"
+          class="input-url"
+          id="url-input"
+          placeholder="https://example-authorized-site.test/tvshows/example-show/"
+          required
+        />
+        <button type="submit" class="btn-submit" id="btn-submit">Start Scrape</button>
+      </form>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="layout-split">
+      <!-- Jobs Feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Scrape Jobs</div>
+        </div>
+        <div class="job-list" id="jobs-container">
+          <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">
+            No active jobs. Submit a URL to begin.
+          </div>
+        </div>
+      </div>
+
+      <!-- Scraped Links Table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Extracted Metadata Records</div>
+          <div>
+            <select id="filter-status" style="background:#0d121f; color:var(--text-primary); border:1px solid var(--border); padding:6px 12px; border-radius:6px; font-size:12px;">
+              <option value="">All Statuses</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="HUMAN_VERIFICATION_REQUIRED">Human Verification</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Title / File</th>
+                <th>Format & Quality</th>
+                <th>Size</th>
+                <th>Provider</th>
+                <th>Mirrors</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="links-tbody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                  No scraped records found yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/stats');
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('stat-total').textContent = data.total ?? 0;
+        document.getElementById('stat-resolved').textContent = data.resolved ?? 0;
+        document.getElementById('stat-partial').textContent = data.partial ?? 0;
+        document.getElementById('stat-challenges').textContent = data.humanVerification ?? 0;
+        document.getElementById('stat-errors').textContent = data.errors ?? 0;
+      } catch (e) {
+        console.error('Stats poll failed:', e);
+      }
+    }
+
+    async function fetchJobs() {
+      try {
+        const res = await fetch('/api/jobs');
+        if (!res.ok) return;
+        const jobs = await res.json();
+        const container = document.getElementById('jobs-container');
+
+        if (jobs.length === 0) {
+          container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">No jobs found.</div>';
+          return;
+        }
+
+        container.innerHTML = jobs.map(j => `
+          <div class="job-item">
+            <div class="job-item-top">
+              <span class="job-id">${j._id || j.jobId}</span>
+              <span class="badge badge-${j.status}">${j.status}</span>
+            </div>
+            <div class="job-url" title="${j.url}">${j.url}</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">
+              Results: ${j.resultsCount || 0} ${j.error ? `<span style="color:var(--accent-red)"> • ${j.error}</span>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Jobs fetch failed:', e);
+      }
+    }
+
+    async function fetchLinks() {
+      try {
+        const filterStatus = document.getElementById('filter-status').value;
+        const url = filterStatus ? `/api/links?status=${filterStatus}` : '/api/links';
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const links = await res.json();
+        const tbody = document.getElementById('links-tbody');
+
+        if (links.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">No scraped records found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = links.map(l => `
+          <tr>
+            <td>
+              <div class="file-title">${l.title || l.filename || 'Unknown'}</div>
+              <div class="file-sub">
+                ${(l.destinationUrl || l.providerUrl) 
+                  ? `<a href="${l.destinationUrl || l.providerUrl}" target="_blank" style="color:#60a5fa; text-decoration:none;">${l.destinationUrl || l.providerUrl}</a>` 
+                  : (l.filename || '')}
+              </div>
+            </td>
+            <td>
+              ${l.quality ? `<span class="tag">${l.quality}</span>` : ''}
+              ${l.codec ? `<span class="tag">${l.codec}</span>` : ''}
+              ${l.format ? `<span class="tag">${l.format}</span>` : ''}
+            </td>
+            <td style="font-family:'JetBrains Mono', monospace;">
+              ${l.sizeDisplay || '0 B'}
+            </td>
+            <td>
+              <span class="tag" style="background:#2e1065; color:#c084fc;">${l.provider || 'GENERIC'}</span>
+            </td>
+            <td>
+              ${l.mirrors && l.mirrors.length > 0 
+                ? `<span class="mirror-btn" title="${l.mirrors.map(m => m.name + ': ' + m.url).join('\n')}">${l.mirrors.length} Mirror${l.mirrors.length > 1 ? 's' : ''}</span>` 
+                : '<span style="color:var(--text-secondary); font-size:11px;">None</span>'}
+            </td>
+            <td>
+              <span class="badge badge-${l.status}">${l.status}</span>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Links fetch failed:', e);
+      }
+    }
+
+    document.getElementById('scrape-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('url-input');
+      const submitBtn = document.getElementById('btn-submit');
+      const url = input.value.trim();
+      if (!url) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enqueuing...';
+
+      try {
+        const res = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        if (res.ok) {
+          input.value = '';
+          await fetchJobs();
+          await fetchStats();
+        } else {
+          const err = await res.json();
+          alert('Error: ' + (err.error || 'Failed to submit scrape job'));
+        }
+      } catch (err) {
+        alert('Network error submitting job: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Start Scrape';
+      }
+    });
+
+    document.getElementById('filter-status').addEventListener('change', fetchLinks);
+
+    // Initial load & polling
+    fetchStats();
+    fetchJobs();
+    fetchLinks();
+    setInterval(() => {
+      fetchStats();
+      fetchJobs();
+      fetchLinks();
+    }, 3000);
+  </script>
+</body>
+</html>
