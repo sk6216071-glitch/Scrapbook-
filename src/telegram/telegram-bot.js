@@ -213,35 +213,30 @@ class TelegramBotService {
    * Handles incoming Telegram user commands
    */
   async handleMessage(msg) {
-    const text = msg.text.trim();
+    const text = (msg.text || '').trim();
     const chatId = msg.chat.id;
     const fromUser = msg.from?.username ? `@${msg.from.username}` : (msg.from?.first_name || 'User');
 
-    logger.info('TELEGRAM', `Command from ${fromUser}: ${text}`);
+    logger.info('TELEGRAM', `Message from ${fromUser} (ID: ${chatId}): ${text.slice(0, 80)}`);
 
-    // Auto-pair with first user who messages the bot if chatId is not configured
+    // Strict Authorization Firewall: Only allow the configured owner chat ID
+    if (this.chatId && String(chatId) !== String(this.chatId)) {
+      logger.warn('TELEGRAM', `Blocked unauthorized access attempt from ${fromUser} (ID: ${chatId})`);
+      await this.sendMessage(chatId, `⛔ <b>Access Denied:</b> This bot is private and restricted strictly to its owner.`);
+      return;
+    }
+
+    // Auto-pair with first user if chatId is not configured
     if (!this.chatId) {
       this.chatId = String(chatId);
       logger.info('TELEGRAM', `Auto-paired with chat ID: ${this.chatId}`);
-      try {
-        const envPath = path.resolve('.env');
-        if (fs.existsSync(envPath)) {
-          let envContent = fs.readFileSync(envPath, 'utf8');
-          if (envContent.includes('TELEGRAM_CHAT_ID=')) {
-            envContent = envContent.replace(/TELEGRAM_CHAT_ID=.*$/m, `TELEGRAM_CHAT_ID=${this.chatId}`);
-          } else {
-            envContent += `\nTELEGRAM_CHAT_ID=${this.chatId}\n`;
-          }
-          fs.writeFileSync(envPath, envContent, 'utf8');
-        }
-      } catch (e) {
-        logger.error('TELEGRAM', `Could not persist chat ID to .env: ${e.message}`);
-      }
     }
 
-    // Auto-scrape any raw URL sent directly
-    if (text.startsWith('http://') || text.startsWith('https://')) {
-      await this.scrapeAndSendHubCloudLinks(chatId, text);
+    // Extract clean URL (stripping away any external channel watermarks, spam, or promotional text)
+    const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+    if (urlMatch && !text.startsWith('/')) {
+      const cleanUrl = urlMatch[0];
+      await this.scrapeAndSendHubCloudLinks(chatId, cleanUrl);
       return;
     }
 
