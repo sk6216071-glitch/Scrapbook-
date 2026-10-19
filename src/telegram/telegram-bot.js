@@ -379,10 +379,10 @@ class TelegramBotService {
         const text = $(el).text();
         const href = $(el).attr('href');
         if (text.includes('HubCloud') && href && (href.includes('greenmotors') || href.includes('hubcloud') || href.includes('drive'))) {
-          const container = $(el).closest('.download-item, .episode-download-item');
-          let filename = container.find('.file-title, .episode-file-title').text().trim();
+          const container = $(el).closest('.download-item, .episode-download-item, .movie-download-item, div');
+          let filename = container.find('.file-title, .episode-file-title, h4, h3, strong').first().text().trim();
           let size = container.find('.badge-size, span.badge:contains("GB"), span.badge:contains("MB")').first().text().trim();
-          if (!filename) filename = $(el).closest('div').text().trim();
+          if (!filename || filename === 'Download HubCloud') filename = '';
           hubcloudCandidates.push({ filename, size, href });
         }
       });
@@ -412,15 +412,26 @@ class TelegramBotService {
               dest = decodeMediatorPayload(gRes.body) || item.href;
             }
           }
-          resolved.push({ filename: item.filename, size: item.size, url: dest });
+
+          let finalFilename = item.filename;
+          if (!finalFilename || finalFilename.length < 5 || finalFilename.toLowerCase().includes('download')) {
+            try {
+              const hRes = await http.fetchWithBackoff(dest);
+              const $h = cheerio.load(hRes.body);
+              finalFilename = $h('title').text().replace('- HubCloud', '').replace('HubCloud -', '').trim() || $h('h3, h2, strong').first().text().trim() || 'Movie File';
+            } catch {}
+          }
+
+          resolved.push({ filename: finalFilename, size: item.size, url: dest });
         } catch (e) {
           logger.error('TELEGRAM', `Error resolving item: ${e.message}`);
         }
       }
 
-      // Group by zip vs episodes
+      // Group by zip vs episodes vs movie releases
       const zips = resolved.filter(r => r.filename.endsWith('.zip'));
-      const eps = resolved.filter(r => !r.filename.endsWith('.zip'));
+      const nonZips = resolved.filter(r => !r.filename.endsWith('.zip'));
+      const isTvSeries = nonZips.some(r => /S\d{2}E\d{2}/i.test(r.filename));
 
       if (zips.length > 0) {
         let msg = `📦 <b>SEASON ZIP PACKS:</b>\n\n`;
@@ -430,13 +441,14 @@ class TelegramBotService {
         await this.sendMessage(chatId, msg);
       }
 
-      if (eps.length > 0) {
-        const chunkSize = 6;
-        for (let i = 0; i < eps.length; i += chunkSize) {
-          const chunk = eps.slice(i, i + chunkSize);
-          let msg = `🎬 <b>EPISODES (${i + 1}–${Math.min(i + chunkSize, eps.length)} of ${eps.length}):</b>\n\n`;
-          for (const ep of chunk) {
-            msg += `<code>${ep.filename}</code>\n<code>${ep.url}</code>\n\n`;
+      if (nonZips.length > 0) {
+        const chunkSize = 5;
+        const sectionTitle = isTvSeries ? '🎬 EPISODES' : '🎬 MOVIE RELEASES';
+        for (let i = 0; i < nonZips.length; i += chunkSize) {
+          const chunk = nonZips.slice(i, i + chunkSize);
+          let msg = `<b>${sectionTitle} (${i + 1}–${Math.min(i + chunkSize, nonZips.length)} of ${nonZips.length}):</b>\n\n`;
+          for (const item of chunk) {
+            msg += `<code>${item.filename}</code>\n<code>${item.url}</code>\n\n`;
           }
           await this.sendMessage(chatId, msg);
         }
