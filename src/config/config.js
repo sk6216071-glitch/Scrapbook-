@@ -14,9 +14,9 @@ export const config = {
     .split(',')
     .map(d => d.trim().toLowerCase())
     .filter(Boolean),
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
-  telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
-  telegramEnabled: process.env.TELEGRAM_ENABLED === 'true',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '8265322595:AAHZTMo374j74uyenJpxlxyGry8Ir0AG034',
+  telegramChatId: process.env.TELEGRAM_CHAT_ID || '930928310',
+  telegramEnabled: process.env.TELEGRAM_ENABLED !== undefined ? process.env.TELEGRAM_ENABLED === 'true' : true,
   telegramHeartbeatInterval: parseInt(process.env.TELEGRAM_HEARTBEAT_MINUTES || '60', 10),
 };
 
