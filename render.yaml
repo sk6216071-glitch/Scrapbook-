@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: scrapbook-metadata-scraper
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TELEGRAM_ENABLED
+        value: "true"
+      - key: TELEGRAM_HEARTBEAT_MINUTES
+        value: "60"
+      - key: TELEGRAM_BOT_TOKEN
+        value: "8265322595:AAHZTMo374j74uyenJpxlxyGry8Ir0AG034"
+      - key: TELEGRAM_CHAT_ID
+        value: "930928310"
