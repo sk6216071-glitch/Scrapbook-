@@ -379,9 +379,28 @@ class TelegramBotService {
         const text = $(el).text();
         const href = $(el).attr('href');
         if (text.includes('HubCloud') && href && (href.includes('greenmotors') || href.includes('hubcloud') || href.includes('drive'))) {
-          const container = $(el).closest('.download-item, .episode-download-item, .movie-download-item, div');
-          let filename = container.find('.file-title, .episode-file-title, h4, h3, strong').first().text().trim();
-          let size = container.find('.badge-size, span.badge:contains("GB"), span.badge:contains("MB")').first().text().trim();
+          let filename = '';
+          let curr = $(el).parent();
+          while (curr.length && !filename && curr.prop('tagName') !== 'BODY') {
+            const found = curr.find('.file-title, .episode-file-title, h4, h3, strong').first().text().trim();
+            if (found && !found.toLowerCase().includes('download hubcloud')) {
+              filename = found;
+              break;
+            }
+            curr = curr.parent();
+          }
+
+          let size = '';
+          let scurr = $(el).parent();
+          while (scurr.length && !size && scurr.prop('tagName') !== 'BODY') {
+            const foundSize = scurr.find('.badge-size, span.badge:contains("GB"), span.badge:contains("MB")').first().text().trim();
+            if (foundSize) {
+              size = foundSize;
+              break;
+            }
+            scurr = scurr.parent();
+          }
+
           if (!filename || filename === 'Download HubCloud') filename = '';
           hubcloudCandidates.push({ filename, size, href });
         }
@@ -396,36 +415,44 @@ class TelegramBotService {
         return;
       }
 
-      await this.sendMessage(chatId, `⚡ Found <b>${hubcloudCandidates.length}</b> HubCloud links. Resolving final destination links...`);
+      await this.sendMessage(chatId, `⚡ Found <b>${hubcloudCandidates.length}</b> HubCloud links. Resolving final destination links in parallel...`);
 
-      // Resolve items
+      // Resolve items concurrently in batches of 10
       const resolved = [];
-      for (const item of hubcloudCandidates) {
-        try {
-          let dest = item.href;
-          if (item.href.includes('greenmotors')) {
-            const gRes = await http.fetchWithBackoff(item.href);
-            if (gRes.statusCode === 302 && gRes.headers.location) {
-              const nextRes = await http.fetchWithBackoff(gRes.headers.location);
-              dest = decodeMediatorPayload(nextRes.body) || gRes.headers.location;
-            } else {
-              dest = decodeMediatorPayload(gRes.body) || item.href;
-            }
-          }
-
-          let finalFilename = item.filename;
-          if (!finalFilename || finalFilename.length < 5 || finalFilename.toLowerCase().includes('download')) {
+      const batchSize = 10;
+      for (let i = 0; i < hubcloudCandidates.length; i += batchSize) {
+        const batch = hubcloudCandidates.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (item) => {
             try {
-              const hRes = await http.fetchWithBackoff(dest);
-              const $h = cheerio.load(hRes.body);
-              finalFilename = $h('title').text().replace('- HubCloud', '').replace('HubCloud -', '').trim() || $h('h3, h2, strong').first().text().trim() || 'Movie File';
-            } catch {}
-          }
+              let dest = item.href;
+              if (item.href.includes('greenmotors')) {
+                const gRes = await http.fetchWithBackoff(item.href);
+                if (gRes.statusCode === 302 && gRes.headers.location) {
+                  const nextRes = await http.fetchWithBackoff(gRes.headers.location);
+                  dest = decodeMediatorPayload(nextRes.body) || gRes.headers.location;
+                } else {
+                  dest = decodeMediatorPayload(gRes.body) || item.href;
+                }
+              }
 
-          resolved.push({ filename: finalFilename, size: item.size, url: dest });
-        } catch (e) {
-          logger.error('TELEGRAM', `Error resolving item: ${e.message}`);
-        }
+              let finalFilename = item.filename;
+              if (!finalFilename || finalFilename.length < 5 || finalFilename.toLowerCase().includes('download')) {
+                try {
+                  const hRes = await http.fetchWithBackoff(dest);
+                  const $h = cheerio.load(hRes.body);
+                  finalFilename = $h('title').text().replace('- HubCloud', '').replace('HubCloud -', '').trim() || $h('h3, h2, strong').first().text().trim() || 'Media File';
+                } catch {}
+              }
+
+              return { filename: finalFilename, size: item.size, url: dest };
+            } catch (e) {
+              logger.error('TELEGRAM', `Error resolving item: ${e.message}`);
+              return null;
+            }
+          })
+        );
+        resolved.push(...batchResults.filter(Boolean));
       }
 
       // Group by zip vs episodes vs movie releases
@@ -442,7 +469,7 @@ class TelegramBotService {
       }
 
       if (nonZips.length > 0) {
-        const chunkSize = 5;
+        const chunkSize = 8;
         const sectionTitle = isTvSeries ? '🎬 EPISODES' : '🎬 MOVIE RELEASES';
         for (let i = 0; i < nonZips.length; i += chunkSize) {
           const chunk = nonZips.slice(i, i + chunkSize);
@@ -451,6 +478,9 @@ class TelegramBotService {
             msg += `<code>${item.filename}</code>\n<code>${item.url}</code>\n\n`;
           }
           await this.sendMessage(chatId, msg);
+          if (i + chunkSize < nonZips.length) {
+            await new Promise(r => setTimeout(r, 250));
+          }
         }
       }
 
