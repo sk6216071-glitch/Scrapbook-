@@ -13,6 +13,6 @@ services:
       - key: TELEGRAM_HEARTBEAT_MINUTES
         value: "60"
       - key: TELEGRAM_BOT_TOKEN
-        value: "8265322595:AAHZTMo374j74uyenJpxlxyGry8Ir0AG034"
+        value: "8265322595:AAGoRXg2VhBA6_j6H_fKCjUBBENL5T1FrCs"
       - key: TELEGRAM_CHAT_ID
         value: "930928310"
